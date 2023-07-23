@@ -1,0 +1,35 @@
+[package]
+name = "auth_monolithic_rust"
+version = "0.1.0"
+edition = "2021"
+
+# Starting in Rust 1.62 you can use `cargo add` to add dependencies 
+# to your project.
+#
+# If you're using an older Rust version,
+# download cargo-edit(https://github.com/killercup/cargo-edit#installation) 
+# to install the `add` subcommand.
+#
+# Running `cargo add DEPENDENCY_NAME` will
+# add the latest version of a dependency to the list,
+# and it will keep the alphabetic ordering for you.
+
+[dependencies]
+rust-argon2 = "1.0.0"
+chrono = "0.4.26"
+cookie = "0.17.0"
+jsonwebtoken = "8.3.0"
+lambda_http = "0.8.1"
+lambda_runtime = "0.8.1"
+rusoto_core = "0.48.0"
+rusoto_dynamodb = "0.48.0"
+rusoto_secretsmanager = "0.48.0"
+serde = "1.0.174"
+serde_json = "1.0.103"
+tokio = { version = "1", features = ["macros"] }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt"] }
+rand = "0.8.5"
+openssl = { version = "0.10.55", features = ["vendored"] }
+
+
