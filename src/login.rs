@@ -1,16 +1,17 @@
-use cookie::Cookie;
-use cookie::time::{Duration, OffsetDateTime};
+use std::i64;
+
 use jsonwebtoken::EncodingKey;
 use lambda_http::{Response, Body, Error};
 use rusoto_dynamodb::{DynamoDbClient, GetItemInput, AttributeValue, DynamoDb};
-use serde_json::{Value, json};
+use serde_json::Value;
 use crate::model::{User, Role};
 
+use crate::response_utils::CookieAction;
 use crate::response_utils::{response_builder_with_cookies, response_builder_from_string, internal_server_error_builder};
 use crate::encryptor::{verify_password, sign_new_tokens};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-enum GetUserError {
+pub enum GetUserError {
     NotFound,
     InternalServerError,
 }
@@ -21,9 +22,7 @@ struct LoginPayload {
     password: String,
 }
 
-const DOMAIN: &str = "lavish-duytran.com";
-
-async fn get_user(client: &DynamoDbClient, email : &str) -> Result<User, GetUserError> {
+pub async fn get_user(client: &DynamoDbClient, email : &str) -> Result<User, GetUserError> {
     let mut get_item_input = GetItemInput::default();
 
     get_item_input.table_name = "UserTable-Lavish".to_string();
@@ -48,14 +47,21 @@ async fn get_user(client: &DynamoDbClient, email : &str) -> Result<User, GetUser
         let get_string_field = |field: &str| -> Option<String> {
             item.get(field)?.s.clone()
         };
+        let get_number_field = |field: &str| -> Option<i64> {
+            item.get(field)?.n.clone().map(|n| n.parse::<i64>().unwrap_or_default())
+        };
 
         let first_name = get_string_field("first_name").ok_or(GetUserError::InternalServerError)?;
         let role = get_string_field("role").ok_or(GetUserError::InternalServerError)?;
         let last_name = get_string_field("last_name").ok_or(GetUserError::InternalServerError)?;
         let hashed_password = get_string_field("hashed_password").ok_or(GetUserError::InternalServerError)?;
+        let creation_timestamp = get_number_field("creation_timestamp").ok_or(GetUserError::InternalServerError)?;
+        let password_hash_timestamp = get_number_field("password_hash_timestamp").ok_or(GetUserError::InternalServerError)?;
 
         User {
             email : email.to_string(),
+            creation_timestamp,
+            password_hash_timestamp,
             first_name,
             last_name,
             role : Role::from_str(role.as_str()),
@@ -64,29 +70,6 @@ async fn get_user(client: &DynamoDbClient, email : &str) -> Result<User, GetUser
     };
 
     Ok(user_details)
-}
-
-fn build_cookie(name: &str, value: &str) -> String {
-    Cookie::build(name, value)
-        .domain(DOMAIN)
-        .path("/auth")
-        .secure(true)
-        .http_only(true)
-        .max_age(Duration::seconds(10))
-        .finish()
-        .to_string()
-}
-
-fn build_expired_cookie(name: &str) -> String {
-    Cookie::build(name, "")
-    .domain(DOMAIN)
-    .path("/auth")
-    .secure(true)
-    .http_only(true)
-    .max_age(Duration::seconds(0))
-    .expires(OffsetDateTime::now_utc())
-    .finish()
-    .to_string()
 }
 
 pub async fn login(request : &Value, client_dynamodb: &DynamoDbClient, access_token_private_key: &EncodingKey, refresh_token_private_key: &EncodingKey) -> Result<Response<Body>, Error> {
@@ -115,13 +98,8 @@ pub async fn login(request : &Value, client_dynamodb: &DynamoDbClient, access_to
             Ok(payload) => payload,
             Err(err) => return Ok(internal_server_error_builder(err.to_string())?)
         };
-
-        let access_token_cookie = build_cookie("access_token", access_token.as_str());
-        let refress_token_cookie = build_cookie("refresh_token", refresh_token.as_str());
         
-        return Ok(response_builder_with_cookies(200, &json!({
-            "message" : format!("Log-in success, Welcome {}", user.first_name)
-        }), Some(access_token_cookie), Some(refress_token_cookie)) ?)
+        return Ok(response_builder_with_cookies(200, format!("Log-in success, Welcome {}", user.first_name),Some(CookieAction::Set(refresh_token)), Some(CookieAction::Set(access_token))) ?)
     } else {
         return Ok(response_builder_from_string(401, "Login Failed: Incorrect Email or Password.".to_string())?);
     }

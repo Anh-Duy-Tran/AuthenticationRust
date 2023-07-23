@@ -1,3 +1,4 @@
+use chrono::Utc;
 use lambda_http::{Response, Body, Error};
 use rusoto_dynamodb::{DynamoDbClient, GetItemInput, AttributeValue, DynamoDb, PutItemInput};
 use serde_json::{Value, json};
@@ -38,11 +39,13 @@ pub async fn register(request: &Value, client_dynamodb: &DynamoDbClient) -> Resu
         table_name: "UserTable-Lavish".to_string(),
         item: {
             let mut item = std::collections::HashMap::new();
+            item.insert("creation_timestamp".to_string(), AttributeValue { n: Some(Utc::now().timestamp().to_string()), ..Default::default() });
             item.insert("email".to_string(), AttributeValue { s: Some(payload.email), ..Default::default() });
             item.insert("first_name".to_string(), AttributeValue { s: Some(payload.first_name), ..Default::default() });
             item.insert("last_name".to_string(), AttributeValue { s: Some(payload.last_name), ..Default::default() });
             item.insert("role".to_string(), AttributeValue { s: Some(Role::Customer.to_string()), ..Default::default() });
             item.insert("hashed_password".to_string(), AttributeValue { s: Some(hash_password(&payload.password)?), ..Default::default()});
+            item.insert("password_hash_timestamp".to_string(), AttributeValue { n: Some(Utc::now().timestamp().to_string()), ..Default::default() });
             item
         },
         ..Default::default()

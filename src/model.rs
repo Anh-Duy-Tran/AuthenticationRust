@@ -35,6 +35,8 @@ pub struct User {
     pub first_name: String,
     pub last_name: String,
     pub hashed_password: String,
+    pub creation_timestamp: i64,
+    pub password_hash_timestamp: i64,
     pub role: Role
 }
 
