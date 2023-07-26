@@ -82,11 +82,13 @@ async fn function_handler<'a> (func_context: &'a FuncContext<'a>, event: Request
                     }
                 None => Ok(response_builder_from_string(401, "Missing authentication token, please log-in first.".to_string()) ?)
             }
+            
         (&Method::POST, "/main/auth/login" | "/main/auth/login/")
             => match login(&request_json, &func_context.client_dynamodb,&func_context.jwt_access_key, &func_context.jwt_refresh_key).await {
                 Ok(res) => Ok(res),
                 Err(err) => Ok(internal_server_error_builder(err.to_string())?)
             }
+
         (&Method::POST, "/main/auth/register" | "/main/auth/register/")
             => match register(&request_json, &func_context.client_dynamodb).await {
                 Ok(res) => Ok(res),
