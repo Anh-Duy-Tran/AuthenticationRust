@@ -7,6 +7,7 @@ const DOMAIN: &str = "lavish-duytran.com";
 pub fn response_builder_from_string(status_code: u16, payload : String) -> Result<Response<Body>, Error> {
     Response::builder()
     .header("content-type", "application/json")
+    .header("Access-Control-Allow-Origin", "*")
     .status(status_code)
     .body(Body::Text(serde_json::to_string(&json!({
         "message" : payload,
@@ -18,6 +19,7 @@ pub fn response_builder_from_string(status_code: u16, payload : String) -> Resul
 pub fn response_builder(status_code: u16, payload : &Value) -> Result<Response<Body>, Error> {
     Response::builder()
     .header("content-type", "application/json")
+    .header("Access-Control-Allow-Origin", "*")
     .status(status_code)
     .body(Body::Text(serde_json::to_string(payload)?))
     .map_err(|err| Error::from(err))
@@ -71,6 +73,7 @@ pub fn response_builder_with_cookies(
     
     Response::builder()
         .header("content-type", "application/json")
+        .header("Access-Control-Allow-Origin", "*")
         .status(status_code)
         .header("set-cookie", refresh_cookie)
         .header("set-cookie", access_cookie)
@@ -83,6 +86,7 @@ pub fn response_builder_with_cookies(
 pub fn internal_server_error_builder(message: String) -> Result<Response<Body>, Error> {
     Response::builder()
     .header("content-type", "application/json")
+    .header("Access-Control-Allow-Origin", "*")
     .status(500)
     .body(Body::Text(serde_json::to_string( &json!({
         "Internal Server Error" : message
